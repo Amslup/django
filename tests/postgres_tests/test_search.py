@@ -13,7 +13,7 @@ from .models import Character, Line, LineSavedSearch, Scene
 
 try:
     from django.contrib.postgres.search import (
-        Lexeme, RawSearchQuery, SearchConfig, SearchHeadline, SearchQuery, SearchRank, SearchVector,
+        Lexeme, SearchConfig, SearchHeadline, SearchQuery, SearchRank, SearchVector,
     )
 except ImportError:
     pass
@@ -767,7 +767,7 @@ class SearchHeadlineTests(GrailTestData, PostgreSQLTestCase):
         )
 
 
-class TestRawSearchQuery(GrailTestData, PostgreSQLTestCase):
+class TestLexemes(GrailTestData, PostgreSQLTestCase):
 
     def test_simple(self):
         pass
@@ -775,27 +775,27 @@ class TestRawSearchQuery(GrailTestData, PostgreSQLTestCase):
     def test_and(self):
         searched = Line.objects.annotate(
             search=SearchVector('scene__setting', 'dialogue'),
-        ).filter(search=RawSearchQuery(Lexeme('bedemir') & Lexeme('scales')))
+        ).filter(search=SearchQuery(Lexeme('bedemir') & Lexeme('scales')))
         self.assertSequenceEqual(searched, [self.bedemir0])
 
     def test_multiple_and(self):
         searched = Line.objects.annotate(
             search=SearchVector('scene__setting', 'dialogue'),
-        ).filter(search=RawSearchQuery(Lexeme('bedemir') & Lexeme('scales') & Lexeme('nostrils')))
+        ).filter(search=SearchQuery(Lexeme('bedemir') & Lexeme('scales') & Lexeme('nostrils')))
         self.assertSequenceEqual(searched, [])
 
         searched = Line.objects.annotate(
             search=SearchVector('scene__setting', 'dialogue'),
-        ).filter(search=RawSearchQuery(Lexeme('shall') & Lexeme('use') & Lexeme('larger')))
+        ).filter(search=SearchQuery(Lexeme('shall') & Lexeme('use') & Lexeme('larger')))
         self.assertSequenceEqual(searched, [self.bedemir0])
 
     def test_or(self):
-        searched = Line.objects.filter(dialogue__search=RawSearchQuery(Lexeme('kneecaps') | Lexeme('nostrils')))
+        searched = Line.objects.filter(dialogue__search=SearchQuery(Lexeme('kneecaps') | Lexeme('nostrils')))
         self.assertCountEqual(searched, [self.verse1, self.verse2])
 
     def test_multiple_or(self):
         searched = Line.objects.filter(
-            dialogue__search=RawSearchQuery(Lexeme('kneecaps') | Lexeme('nostrils') | Lexeme('Sir Robin'))
+            dialogue__search=SearchQuery(Lexeme('kneecaps') | Lexeme('nostrils') | Lexeme('Sir Robin'))
         )
         self.assertCountEqual(searched, [self.verse1, self.verse2, self.verse0])
 
@@ -803,19 +803,19 @@ class TestRawSearchQuery(GrailTestData, PostgreSQLTestCase):
         # Test cominbation of & and |
         # This is mainly helpful for checking the test_advanced_invert below
         searched = Line.objects.filter(
-            dialogue__search=RawSearchQuery(Lexeme('shall') & Lexeme('use') & Lexeme('larger') | Lexeme('nostrils'))
+            dialogue__search=SearchQuery(Lexeme('shall') & Lexeme('use') & Lexeme('larger') | Lexeme('nostrils'))
         )
         self.assertCountEqual(searched, [self.bedemir0, self.verse2])
 
     def test_invert(self):
-        searched = Line.objects.filter(character=self.minstrel, dialogue__search=RawSearchQuery(~Lexeme('kneecaps')))
+        searched = Line.objects.filter(character=self.minstrel, dialogue__search=SearchQuery(~Lexeme('kneecaps')))
         self.assertCountEqual(searched, [self.verse0, self.verse2])
 
     def test_advanced_invert(self):
         # Test inverting a query that uses a cominbation of & and |
         # Should return the opposite of test_advanced
         searched = Line.objects.filter(
-            dialogue__search=RawSearchQuery(~(Lexeme('shall') & Lexeme('use') & Lexeme('larger') | Lexeme('nostrils')))
+            dialogue__search=SearchQuery(~(Lexeme('shall') & Lexeme('use') & Lexeme('larger') | Lexeme('nostrils')))
         )
         expected_result = Line.objects.exclude(id__in=[self.bedemir0.id, self.verse2.id])
         self.assertCountEqual(searched, expected_result)
@@ -853,7 +853,7 @@ class TestRawSearchQuery(GrailTestData, PostgreSQLTestCase):
         searched = Line.objects.annotate(
             search=SearchVector('scene__setting', 'dialogue'),
         ).filter(
-            search=RawSearchQuery(Lexeme('hear', prefix=True))
+            search=SearchQuery(Lexeme('hear', prefix=True))
         )
 
         self.assertSequenceEqual(searched, [self.verse2])
@@ -862,7 +862,7 @@ class TestRawSearchQuery(GrailTestData, PostgreSQLTestCase):
         searched = Line.objects.annotate(
             search=SearchVector('scene__setting', 'dialogue'),
         ).filter(
-            search=RawSearchQuery(Lexeme('Robi', prefix=True, invert=True))
+            search=SearchQuery(Lexeme('Robi', prefix=True, invert=True))
         )
         self.assertEqual(set(searched), {self.verse2, self.bedemir0, self.bedemir1, self.french,
                                          self.crowd, self.witch, self.duck})
@@ -871,7 +871,7 @@ class TestRawSearchQuery(GrailTestData, PostgreSQLTestCase):
         searched = Line.objects.annotate(
             search=SearchVector('scene__setting', 'dialogue'),
         ).filter(
-            search=RawSearchQuery(
+            search=SearchQuery(
                 Lexeme('Robi', prefix=True) & Lexeme('Camel', prefix=True)
             )
         )
@@ -882,7 +882,7 @@ class TestRawSearchQuery(GrailTestData, PostgreSQLTestCase):
         searched = Line.objects.annotate(
             search=SearchVector('scene__setting', 'dialogue'),
         ).filter(
-            search=RawSearchQuery(
+            search=SearchQuery(
                 Lexeme('kneecap', prefix=True) | Lexeme('afrai', prefix=True)
             )
         )
