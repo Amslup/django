@@ -1,3 +1,7 @@
+import re
+
+import psycopg2
+
 from django.db.models import (
     CharField,
     Expression,
@@ -10,6 +14,25 @@ from django.db.models import (
 )
 from django.db.models.expressions import CombinedExpression, register_combinable_fields
 from django.db.models.functions import Cast, Coalesce
+
+
+_SEARCH_SPEC_CHARS = r"['\0\[\]()|&:*!@<>\\]"
+_spec_chars_re = re.compile(_SEARCH_SPEC_CHARS)
+multiple_spaces_re = re.compile(r'\s{2,}')
+
+
+def normalize_spaces(val: str):
+    """Converts multiple spaces to single and strips from both sides"""
+    if not val:
+        return None
+    return multiple_spaces_re.sub(' ', val.strip())
+
+
+def psql_escape(query: str):
+    # replace unsafe chars with space
+    query = _spec_chars_re.sub(' ', query)
+    query = normalize_spaces(query)  # convert multiple spaces to single
+    return query
 
 
 class SearchVectorExact(Lookup):
@@ -400,7 +423,7 @@ class Lexeme(LexemeCombinable, Value):
         super().__init__(value, output_field=output_field)
 
     def as_sql(self, compiler, connection):
-        param = "'%s'" % self.value.replace("'", "''").replace("\\", "\\\\")
+        param = "'%s'" % psql_escape(self.value)
         template = '%s'
 
         label = ''
