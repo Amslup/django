@@ -4055,8 +4055,7 @@ by the aggregate.
     Converts each expression to a JSON value and returns a single JSON array
     containing those JSON values.
 
-    * Default alias: ``<field>__JSONArrayAgg``
-    * Return type: JSON ``array`` containing an array element for each value
+    * Return type: ``list`` containing an element for each value
       in a set of JSON or SQL values.
 
 Query-related tools
