@@ -2159,85 +2159,6 @@ class AggregateTestCase(TestCase):
         )
         self.assertEqual(list(author_qs), [337])
 
-    @skipUnlessDBFeature("supports_aggregate_filter_clause")
-    def test_JSONArrayAgg(self):
-        vals = Store.objects.aggregate(jsonarrayagg=JSONArrayAgg("name"))
-        self.assertEqual(
-            vals,
-            {"jsonarrayagg": ["Amazon.com", "Books.com", "Mamma and Pappa's Books"]},
-        )
-
-    @skipUnlessDBFeature("supports_aggregate_filter_clause")
-    def test_JSONArrayAgg_datefield(self):
-        vals = Book.objects.aggregate(jsonarrayagg=JSONArrayAgg("pubdate"))
-        self.assertEqual(
-            vals,
-            {
-                "jsonarrayagg": [
-                    "2007-12-06",
-                    "2008-03-03",
-                    "2008-06-23",
-                    "2008-11-03",
-                    "1995-01-15",
-                    "1991-10-15",
-                ]
-            },
-        )
-
-    @skipUnlessDBFeature("supports_aggregate_filter_clause")
-    def test_JSONArrayAgg_decimalfield(self):
-        vals = Book.objects.aggregate(jsonarrayagg=JSONArrayAgg("price"))
-        self.assertEqual(
-            vals, {"jsonarrayagg": [30.0, 23.09, 29.69, 29.69, 82.8, 75.0]}
-        )
-
-    @skipUnlessDBFeature("supports_aggregate_filter_clause")
-    def test_JSONArrayAgg_integerfield(self):
-        vals = Book.objects.aggregate(jsonarrayagg=JSONArrayAgg("pages"))
-        self.assertEqual(vals, {"jsonarrayagg": [447, 528, 300, 350, 1132, 946]})
-
-    @skipUnlessDBFeature("supports_aggregate_filter_clause")
-    def test_JSONArrayAgg_filter(self):
-        vals = Author.objects.aggregate(
-            jsonarrayagg=JSONArrayAgg("age", filter=Q(age__gt=29))
-        )
-
-        self.assertEqual(vals, {"jsonarrayagg": [34, 35, 45, 37, 57, 46]})
-
-    @skipUnlessDBFeature("supports_aggregate_filter_clause")
-    def test_JSONArrayAgg_empty_result_set(self):
-        Author.objects.all().delete()
-
-        val = Author.objects.aggregate(jsonarrayagg=JSONArrayAgg("age"))
-
-        self.assertEqual(val, {"jsonarrayagg": None})
-
-    @skipUnlessDBFeature("supports_aggregate_filter_clause")
-    def test_JSONArrayAgg_default_set(self):
-        Author.objects.all().delete()
-
-        val = Author.objects.aggregate(
-            jsonarrayagg=JSONArrayAgg("name", default=["<empty>"])
-        )
-        self.assertEqual(val, {"jsonarrayagg": ["<empty>"]})
-
-    @skipUnlessDBFeature("supports_aggregate_filter_clause")
-    def test_JSONArrayAgg_distinct_false(self):
-        val = Author.objects.aggregate(jsonarrayagg=JSONArrayAgg("age", distinct=False))
-        self.assertEqual(val, {"jsonarrayagg": [34, 35, 45, 29, 37, 29, 25, 57, 46]})
-
-    @skipUnlessDBFeature("supports_aggregate_filter_clause")
-    def test_JSONArrayAgg_distinct_true(self):
-        msg = "JSONArrayAgg does not allow distinct."
-        with self.assertRaisesMessage(TypeError, msg):
-            JSONArrayAgg("age", distinct=True)
-
-    @skipIfDBFeature("supports_aggregate_filter_clause")
-    def test_JSONArrayAgg_not_supported(self):
-        msg = "JSONArrayAgg is not supported on this database backend."
-        with self.assertRaisesMessage(NotSupportedError, msg):
-            Author.objects.aggregate(arrayagg=JSONArrayAgg("age"))
-
 
 class AggregateAnnotationPruningTests(TestCase):
     @classmethod
@@ -2439,3 +2360,86 @@ class AggregateAnnotationPruningTests(TestCase):
             )
         )
         self.assertEqual(qs.count(), 3)
+
+
+class JSONArrayAggTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.a1 = Author.objects.create(name="Adrian Holovaty", age=34)
+        cls.a2 = Author.objects.create(name="Jacob Kaplan-Moss", age=35)
+        cls.a3 = Author.objects.create(name="Brad Dayley", age=45)
+
+        cls.p1 = Publisher.objects.create(
+            name="Apress", num_awards=3, duration=datetime.timedelta(days=1)
+        )
+
+        cls.b1 = Book.objects.create(
+            isbn="159059725",
+            name="The Definitive Guide to Django: Web Development Done Right",
+            pages=447,
+            rating=4.5,
+            price=Decimal("30.00"),
+            contact=cls.a1,
+            publisher=cls.p1,
+            pubdate=datetime.date(2007, 12, 6),
+        )
+
+    def test_JSONArrayAgg(self):
+        vals = Author.objects.aggregate(jsonarrayagg=JSONArrayAgg("name"))
+        self.assertEqual(
+            vals,
+            {"jsonarrayagg": ["Adrian Holovaty", "Jacob Kaplan-Moss", "Brad Dayley"]},
+        )
+
+    def test_JSONArrayAgg_datefield(self):
+        vals = Book.objects.aggregate(jsonarrayagg=JSONArrayAgg("pubdate"))
+        self.assertEqual(
+            vals,
+            {
+                "jsonarrayagg": [
+                    "2007-12-06",
+                ]
+            },
+        )
+
+    def test_JSONArrayAgg_decimalfield(self):
+        vals = Book.objects.aggregate(jsonarrayagg=JSONArrayAgg("price"))
+        self.assertEqual(vals, {"jsonarrayagg": [30.0]})
+
+    def test_JSONArrayAgg_integerfield(self):
+        vals = Book.objects.aggregate(jsonarrayagg=JSONArrayAgg("pages"))
+        self.assertEqual(vals, {"jsonarrayagg": [447]})
+
+    @skipUnlessDBFeature("supports_aggregate_filter_clause")
+    def test_JSONArrayAgg_filter(self):
+        vals = Author.objects.aggregate(
+            jsonarrayagg=JSONArrayAgg("age", filter=Q(age__gt=35))
+        )
+
+        self.assertEqual(vals, {"jsonarrayagg": [45]})
+
+    def test_JSONArrayAgg_empty_result_set(self):
+        Author.objects.all().delete()
+
+        val = Author.objects.aggregate(jsonarrayagg=JSONArrayAgg("age"))
+
+        self.assertEqual(val, {"jsonarrayagg": None})
+
+    def test_JSONArrayAgg_default_set(self):
+        Author.objects.all().delete()
+
+        val = Author.objects.aggregate(
+            jsonarrayagg=JSONArrayAgg("name", default=["<empty>"])
+        )
+        self.assertEqual(val, {"jsonarrayagg": ["<empty>"]})
+
+    def test_JSONArrayAgg_distinct_true(self):
+        msg = "JSONArrayAgg does not allow distinct."
+        with self.assertRaisesMessage(TypeError, msg):
+            JSONArrayAgg("age", distinct=True)
+
+    @skipIfDBFeature("supports_aggregate_filter_clause")
+    def test_JSONArrayAgg_not_supported(self):
+        msg = "JSONArrayAgg(filter) is not supported on this database backend."
+        with self.assertRaisesMessage(NotSupportedError, msg):
+            Author.objects.aggregate(arrayagg=JSONArrayAgg("age", filter=Q(age__gt=35)))

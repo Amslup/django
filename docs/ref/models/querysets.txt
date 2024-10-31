@@ -4050,6 +4050,8 @@ by the aggregate.
 ``JSONArrayAgg``
 ~~~~~~~~~~~~~~~~
 
+.. versionadded:: 5.1
+
 .. class:: JSONArrayAgg(expression, output_field=None, sample=False, filter=None, default=None, **extra)
 
     Converts each expression to a JSON value and returns a single JSON array

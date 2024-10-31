@@ -223,9 +223,9 @@ class JSONArrayAgg(Aggregate):
     arity = 1
 
     def as_sql(self, compiler, connection, **extra_context):
-        if not connection.features.supports_aggregate_filter_clause:
+        if self.filter and not connection.features.supports_aggregate_filter_clause:
             raise NotSupportedError(
-                "JSONArrayAgg is not supported on this database backend."
+                "JSONArrayAgg(filter) is not supported on this database backend."
             )
         return super().as_sql(compiler, connection, **extra_context)
 
@@ -233,8 +233,10 @@ class JSONArrayAgg(Aggregate):
         sql, params = self.as_sql(
             compiler, connection, function="JSON_GROUP_ARRAY", **extra_context
         )
+        # JSON_GROUP_ARRAY defaults to returning an empty array on an empty set.
         if (default := self.default) == []:
             return sql, params
+        # Ensure Count() is against the exact same parameters (filter, distinct)
         count = self.copy()
         count.__class__ = Count
         count_sql, count_params = compiler.compile(count)
