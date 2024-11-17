@@ -459,12 +459,7 @@ class CombinedLexeme(LexemeCombinable, CombinedExpression):
     _output_field = SearchQueryField()
 
     def __init__(self, lhs, connector, rhs, output_field=None):
-        super().__init__(
-            lhs=lhs, connector=connector, rhs=rhs, output_field=output_field
-        )
-        self.connector = connector
-        self.lhs = lhs
-        self.rhs = rhs
+        super().__init__(lhs, connector, rhs, output_field)
 
     def as_sql(self, compiler, connection):
         value_params = []
