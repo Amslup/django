@@ -18,19 +18,19 @@ from django.db.models.functions import Cast, Coalesce
 
 _SEARCH_SPEC_CHARS = r"['\0\[\]()|&:*!@<>\\]"
 _spec_chars_re = re.compile(_SEARCH_SPEC_CHARS)
-multiple_spaces_re = re.compile(r'\s{2,}')
+multiple_spaces_re = re.compile(r"\s{2,}")
 
 
 def normalize_spaces(val: str):
     """Converts multiple spaces to single and strips from both sides"""
     if not val:
         return None
-    return multiple_spaces_re.sub(' ', val.strip())
+    return multiple_spaces_re.sub(" ", val.strip())
 
 
 def psql_escape(query: str):
     # replace unsafe chars with space
-    query = _spec_chars_re.sub(' ', query)
+    query = _spec_chars_re.sub(" ", query)
     query = normalize_spaces(query)  # convert multiple spaces to single
     return query
 
@@ -217,9 +217,17 @@ class SearchQuery(SearchQueryCombinable, Func):
         "websearch": "websearch_to_tsquery",
     }
 
-    def __init__(self, value, output_field=None, *, config=None, invert=False, search_type='plain'):
+    def __init__(
+        self,
+        value,
+        output_field=None,
+        *,
+        config=None,
+        invert=False,
+        search_type="plain",
+    ):
         if isinstance(value, LexemeCombinable):
-            search_type = 'raw'
+            search_type = "raw"
 
         self.function = self.SEARCH_TYPES.get(search_type)
         if self.function is None:
@@ -379,19 +387,19 @@ class TrigramSimilarity(TrigramBase):
 
 
 class TrigramDistance(TrigramBase):
-    function = ''
-    arg_joiner = ' <-> '
+    function = ""
+    arg_joiner = " <-> "
 
 
-class LexemeCombinable(Expression):
-    BITAND = '&'
-    BITOR = '|'
+class LexemeCombinable:
+    BITAND = "&"
+    BITOR = "|"
 
     def _combine(self, other, connector, reversed, node=None):
         if not isinstance(other, LexemeCombinable):
             raise TypeError(
-                'A Lexeme can only be combined with another Lexeme, '
-                'got {}.'.format(type(other))
+                "A Lexeme can only be combined with another Lexeme, "
+                "got {}.".format(type(other))
             )
         if reversed:
             return CombinedLexeme(other, connector, self)
@@ -416,7 +424,9 @@ class LexemeCombinable(Expression):
 class Lexeme(LexemeCombinable, Value):
     _output_field = SearchQueryField()
 
-    def __init__(self, value, output_field=None, *, invert=False, prefix=False, weight=None):
+    def __init__(
+        self, value, output_field=None, *, invert=False, prefix=False, weight=None
+    ):
         self.prefix = prefix
         self.invert = invert
         self.weight = weight
@@ -424,30 +434,34 @@ class Lexeme(LexemeCombinable, Value):
 
     def as_sql(self, compiler, connection):
         param = "'%s'" % psql_escape(self.value)
-        template = '%s'
+        template = "%s"
 
-        label = ''
+        label = ""
         if self.prefix:
-            label += '*'
+            label += "*"
         if self.weight:
             label += self.weight
 
         if label:
-            param = '{}:{}'.format(param, label)
+            param = "{}:{}".format(param, label)
         if self.invert:
-            param = '!{}'.format(param)
+            param = "!{}".format(param)
         params = [param]
         return template, params
 
     def __invert__(self):
-        return type(self)(self.value, invert=not self.invert, prefix=self.prefix, weight=self.weight)
+        return type(self)(
+            self.value, invert=not self.invert, prefix=self.prefix, weight=self.weight
+        )
 
 
-class CombinedLexeme(LexemeCombinable):
+class CombinedLexeme(LexemeCombinable, CombinedExpression):
     _output_field = SearchQueryField()
 
     def __init__(self, lhs, connector, rhs, output_field=None):
-        super().__init__(output_field=output_field)
+        super().__init__(
+            lhs=lhs, connector=connector, rhs=rhs, output_field=output_field
+        )
         self.connector = connector
         self.lhs = lhs
         self.rhs = rhs
@@ -460,11 +474,15 @@ class CombinedLexeme(LexemeCombinable):
         rsql, params = compiler.compile(self.rhs)
         value_params.extend(params)
 
-        combined_sql = '({} {} {})'.format(lsql, self.connector, rsql)
+        combined_sql = "({} {} {})".format(lsql, self.connector, rsql)
         combined_value = combined_sql % tuple(value_params)
-        return '%s', [combined_value]
+        return "%s", [combined_value]
 
     def __invert__(self):
         # Swap the connector and invert the lhs and rhs.
         # This generates a query that's equivalent to what we expect (thanks to De Morgan's theorem)
-        return type(self)(~self.lhs, self.BITAND if self.connector == self.BITOR else self.BITOR, ~self.rhs)
+        return type(self)(
+            ~self.lhs,
+            self.BITAND if self.connector == self.BITOR else self.BITOR,
+            ~self.rhs,
+        )

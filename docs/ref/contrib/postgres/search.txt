@@ -297,8 +297,8 @@ floats to :class:`SearchRank` as ``weights`` in the same order above:
 Lexeme objects
 ==============
 
-Lexeme objects allow search operators to be used with strings from an
-untrusted source. The content of each lexeme is escaped so any operators that
+Lexeme objects allow search operators to be safely used with strings from an
+untrusted source. The content of each lexeme is escaped so that any operators that may
 exist in the string itself will not be interpreted.
 
 You can combine lexemes with other lexemes in Python using the ``&`` and ``|``
