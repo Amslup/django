@@ -28,6 +28,11 @@ class Command(BaseCommand):
             ),
         )
         parser.add_argument(
+            "--no-imports",
+            action="store_true",
+            help="Disable automatic imports of models.",
+        )
+        parser.add_argument(
             "-i",
             "--interface",
             choices=self.shells,
@@ -50,19 +55,25 @@ class Command(BaseCommand):
 
         start_ipython(
             argv=[],
-            user_ns=self.get_and_report_namespace(options["verbosity"]),
+            user_ns=self.get_and_report_namespace(
+                options["verbosity"], options["no_imports"]
+            ),
         )
 
     def bpython(self, options):
         import bpython
 
-        bpython.embed(self.get_and_report_namespace(options["verbosity"]))
+        bpython.embed(
+            self.get_and_report_namespace(options["verbosity"], options["no_imports"])
+        )
 
     def python(self, options):
         import code
 
         # Set up a dictionary to serve as the environment for the shell.
-        imported_objects = self.get_and_report_namespace(options["verbosity"])
+        imported_objects = self.get_and_report_namespace(
+            options["verbosity"], options["no_imports"]
+        )
 
         # We want to honor both $PYTHONSTARTUP and .pythonrc.py, so follow system
         # conventions and get $PYTHONSTARTUP first then .pythonrc.py.
@@ -115,17 +126,17 @@ class Command(BaseCommand):
         # Start the interactive interpreter.
         code.interact(local=imported_objects)
 
-    def get_and_report_namespace(self, verbosity):
-        namespace = self.get_namespace()
+    def get_and_report_namespace(self, verbosity, no_imports=False):
+        namespace = {} if no_imports else self.get_namespace()
 
         if verbosity >= 1:
             self.stdout.write(
-                f"{len(namespace)} objects imported automatically",
+                f"Automatic imports: {len(namespace)} objects imported"
+                " (use -v 2 for details)",
                 self.style.SUCCESS,
             )
         if verbosity >= 2:
             imports_by_module = {}
-            imports_by_alias = {}
             for obj_name, obj in namespace.items():
                 if hasattr(obj, "__module__") and (
                     (hasattr(obj, "__qualname__") and obj.__qualname__.find(".") == -1)
@@ -141,34 +152,30 @@ class Command(BaseCommand):
                         module = ".".join(tokens)
                         collected_imports = imports_by_module.get(module, [])
                         imports_by_module[module] = collected_imports + [obj_name]
-                    else:
-                        module = ".".join(tokens)
-                        imports_by_alias[module] = obj_name
 
+            import_string = ""
             for module, imported_objects in imports_by_module.items():
-                self.stdout.write(
-                    f"from {module} import {', '.join(imported_objects)}",
-                    self.style.SUCCESS,
+                import_string += (
+                    f"\tfrom {module} import {', '.join(imported_objects)}\n"
                 )
-            for module, alias in imports_by_alias.items():
-                self.stdout.write(f"import {module} as {alias}", self.style.SUCCESS)
+
+            try:
+                import isort
+
+                import_string = isort.code(import_string)
+            except ImportError:
+                pass
+
+            self.stdout.write(import_string, self.style.SUCCESS)
 
         return namespace
 
     def get_namespace(self):
         apps_models = apps.get_models()
-        apps_models_modules = [
-            (app.models_module, app.label)
-            for app in apps.get_app_configs()
-            if app.models_module is not None
-        ]
         namespace = {}
         for model in reversed(apps_models):
             if model.__module__:
                 namespace[model.__name__] = model
-        for app_models_module, app_label in apps_models_modules:
-            if f"{app_label}_models" not in namespace:
-                namespace[f"{app_label}_models"] = app_models_module
         return namespace
 
     def handle(self, **options):

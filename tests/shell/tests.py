@@ -3,9 +3,7 @@ import unittest
 from unittest import mock
 
 from django import __version__
-from django.contrib.auth import models as auth_model_module
 from django.contrib.auth.models import Group, Permission, User
-from django.contrib.contenttypes import models as contenttypes_model_module
 from django.contrib.contenttypes.models import ContentType
 from django.core.management import CommandError, call_command
 from django.core.management.commands import shell
@@ -89,7 +87,7 @@ class ShellCommandTestCase(SimpleTestCase):
         mock_ipython = mock.Mock(start_ipython=mock.MagicMock())
 
         with mock.patch.dict(sys.modules, {"IPython": mock_ipython}):
-            cmd.ipython({"verbosity": 0})
+            cmd.ipython({"verbosity": 0, "no_imports": False})
 
         self.assertEqual(
             mock_ipython.start_ipython.mock_calls,
@@ -110,7 +108,7 @@ class ShellCommandTestCase(SimpleTestCase):
         mock_bpython = mock.Mock(embed=mock.MagicMock())
 
         with mock.patch.dict(sys.modules, {"bpython": mock_bpython}):
-            cmd.bpython({"verbosity": 0})
+            cmd.bpython({"verbosity": 0, "no_imports": False})
 
         self.assertEqual(
             mock_bpython.embed.mock_calls, [mock.call(cmd.get_and_report_namespace(0))]
@@ -130,7 +128,7 @@ class ShellCommandTestCase(SimpleTestCase):
         mock_code = mock.Mock(interact=mock.MagicMock())
 
         with mock.patch.dict(sys.modules, {"code": mock_code}):
-            cmd.python({"verbosity": 0, "no_startup": True})
+            cmd.python({"verbosity": 0, "no_startup": True, "no_imports": False})
 
         self.assertEqual(
             mock_code.interact.mock_calls,
@@ -160,9 +158,6 @@ class ShellCommandTestCase(SimpleTestCase):
                 "Group": Group,
                 "Permission": Permission,
                 "User": User,
-                "auth_models": auth_model_module,
-                "contenttypes_models": contenttypes_model_module,
-                "shell_models": shell_models,
             },
         )
 
@@ -216,10 +211,27 @@ class ShellCommandTestCase(SimpleTestCase):
                 "Group": Group,
                 "Permission": Permission,
                 "User": User,
-                "auth_models": auth_model_module,
-                "contenttypes_models": contenttypes_model_module,
-                "shell_models": shell_models,
             },
+        )
+
+    @override_settings(
+        INSTALLED_APPS=["shell", "django.contrib.auth", "django.contrib.contenttypes"]
+    )
+    def test_no_imports_namespace(self):
+        cmd = shell.Command()
+        namespace = cmd.get_and_report_namespace(verbosity=0, no_imports=True)
+        self.assertEqual(namespace, {})
+
+    @override_settings(
+        INSTALLED_APPS=["shell", "django.contrib.auth", "django.contrib.contenttypes"]
+    )
+    def test_message_with_no_imports(self):
+        with captured_stdout() as stdout:
+            cmd = shell.Command()
+            cmd.get_and_report_namespace(verbosity=1, no_imports=True)
+        self.assertEqual(
+            stdout.getvalue().strip(),
+            "Automatic imports: 0 objects imported (use -v 2 for details)",
         )
 
     @override_settings(
@@ -229,7 +241,10 @@ class ShellCommandTestCase(SimpleTestCase):
         with captured_stdout() as stdout:
             cmd = shell.Command()
             cmd.get_and_report_namespace(verbosity=1)
-        self.assertEqual(stdout.getvalue().strip(), "9 objects imported automatically")
+        self.assertEqual(
+            stdout.getvalue().strip(),
+            "Automatic imports: 6 objects imported (use -v 2 for details)",
+        )
 
     @override_settings(
         INSTALLED_APPS=["shell", "django.contrib.auth", "django.contrib.contenttypes"]
@@ -241,7 +256,8 @@ class ShellCommandTestCase(SimpleTestCase):
         self.assertEqual(stdout.getvalue().strip(), "")
 
     @override_settings(INSTALLED_APPS=["shell", "django.contrib.contenttypes"])
-    def test_message_with_stdout_listing_objects(self):
+    @mock.patch.dict(sys.modules, {"isort": None})
+    def test_message_with_stdout_listing_objects_with_isort_not_installed(self):
         class Command(shell.Command):
             def get_namespace(self):
                 class MyClass:
@@ -261,38 +277,40 @@ class ShellCommandTestCase(SimpleTestCase):
 
         self.assertEqual(
             stdout.getvalue().strip(),
-            "7 objects imported automatically\n"
-            "from django.contrib.contenttypes.models import ContentType\n"
-            "from shell.models import Phone, Marker\n"
-            "import shell.models as shell_models\n"
-            "import django.contrib.contenttypes.models as contenttypes_models",
+            "Automatic imports: 5 objects imported (use -v 2 for details)\n"
+            "\tfrom django.contrib.contenttypes.models import ContentType\n"
+            "\tfrom shell.models import Phone, Marker",
         )
 
-    @override_settings(
-        INSTALLED_APPS=[
-            "shell",
-            "django.contrib.auth",
-            "django.contrib.messages",
-            "django.contrib.staticfiles",
-        ]
-    )
-    def test_shell_has_no_empty_models_objects(self):
-        cmd = shell.Command()
-        namespace = cmd.get_namespace()
+    @override_settings(INSTALLED_APPS=["shell", "django.contrib.contenttypes"])
+    def test_message_with_stdout_listing_objects_with_isort(self):
+        sorted_imports = (
+            "\tfrom shell.models import Marker, Phone\n\n"
+            "\tfrom django.contrib.contenttypes.models import ContentType"
+        )
+        mock_isort_code = mock.Mock(code=mock.MagicMock(return_value=sorted_imports))
 
-        self.assertNotIn("messages_models", namespace)
-        self.assertNotIn("staticfiles_models", namespace)
-        self.assertIsNotNone(namespace["auth_models"])
-        self.assertIsNotNone(namespace["shell_models"])
+        class Command(shell.Command):
+            def get_namespace(self):
+                class MyClass:
+                    pass
 
-    @override_settings(INSTALLED_APPS=["shell"])
-    @isolate_apps("shell", kwarg_name="apps")
-    def test_app_has_model_with_name_equal_module_name(self, apps):
-        class shell_models(models.Model):
-            pass
+                constant = "constant"
 
-        cmd = shell.Command()
+                return {
+                    **super().get_namespace(),
+                    "MyClass": MyClass,
+                    "constant": constant,
+                }
 
-        with mock.patch("django.apps.apps.get_models", return_value=apps.get_models()):
-            namespace = cmd.get_namespace()
-            self.assertEqual(namespace["shell_models"], shell_models)
+        with captured_stdout() as stdout:
+            cmd = Command()
+            with mock.patch.dict(sys.modules, {"isort": mock_isort_code}):
+                cmd.get_and_report_namespace(verbosity=2)
+
+        self.assertEqual(
+            stdout.getvalue().strip(),
+            "Automatic imports: 5 objects imported (use -v 2 for details)\n"
+            "\tfrom shell.models import Marker, Phone\n\n"
+            "\tfrom django.contrib.contenttypes.models import ContentType",
+        )

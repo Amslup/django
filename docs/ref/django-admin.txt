@@ -1070,11 +1070,9 @@ All models from all installed apps are automatically imported. See the guide on
 remove imports.
 
 Models from apps listed earlier in :setting:`INSTALLED_APPS` take precedence.
-You can access overridden models from later, lower-precedence apps through its
-models module, which is made available as ``<app_label>_models``, for example
-``biblio_models.Book`` to access a model called ``Book`` in an app called
-``biblio``. For a ``--verbosity`` of 2 and above, all imported functions and
-classes are shown.
+For a ``--verbosity`` of 2 and above, all imported functions and classes 
+are shown. If you don't want to import any model use the flag 
+``--no-imports``.
 
 .. versionchanged:: 5.2
 
