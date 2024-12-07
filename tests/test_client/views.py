@@ -432,3 +432,8 @@ def two_arg_exception(request):
 
 class CBView(TemplateView):
     template_name = "base.html"
+
+
+def async_default_headers(request):
+    data = {"message": "This is a trial view"}
+    return HttpResponse(data)
