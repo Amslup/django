@@ -1254,7 +1254,7 @@ class AsyncClientTest(TestCase):
     async def async_header_defaults(
         self,
     ) -> None:
-        async_client = AsyncClient(HTTP_AUTHORIZATION=f"Bearer I_AM_JWT_TOKEN")
+        async_client = AsyncClient(HTTP_AUTHORIZATION="Bearer I_AM_JWT_TOKEN")
 
         response = await async_client.get(
             "/async_default_headers/",
