@@ -1251,16 +1251,14 @@ class AsyncClientTest(TestCase):
                 )
                 self.assertEqual(response.asgi_request.GET["example"], "data")
 
-    async def async_header_defaults(
-        self,
-    ) -> None:
+    async def test_async_header_defaults(self):
         async_client = AsyncClient(HTTP_AUTHORIZATION="Bearer I_AM_JWT_TOKEN")
 
         response = await async_client.get(
             "/async_default_headers/",
         )
 
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content, b'{"message": "This is a trial view"}')
 
 
 @override_settings(ROOT_URLCONF="test_client.urls")

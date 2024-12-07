@@ -13,6 +13,7 @@ from django.http import (
     HttpResponseNotAllowed,
     HttpResponseNotFound,
     HttpResponseRedirect,
+    JsonResponse,
 )
 from django.shortcuts import render
 from django.template import Context, Template
@@ -436,4 +437,4 @@ class CBView(TemplateView):
 
 def async_default_headers(request):
     data = {"message": "This is a trial view"}
-    return HttpResponse(data)
+    return JsonResponse(data)
