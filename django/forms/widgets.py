@@ -23,8 +23,7 @@ from django.utils.translation import gettext_lazy as _
 from .renderers import get_default_renderer
 
 __all__ = (
-    "CSS",
-    "JS",
+    "Script",
     "Media",
     "MediaDefiningClass",
     "Widget",
@@ -102,18 +101,11 @@ class MediaAsset:
         return static(self._path)
 
 
-class CSS(MediaAsset):
-    element_template = '<link href="{path}"{attributes}>'
-
-    def __init__(self, href, **attributes):
-        super().__init__(href, **attributes)
-        self.attributes["rel"] = "stylesheet"
-
-
-class JS(MediaAsset):
+class Script(MediaAsset):
     element_template = '<script src="{path}"{attributes}></script>'
 
     def __init__(self, src, **attributes):
+        # We alter the signature to allow src to be passed as a keyword argument.
         super().__init__(src, **attributes)
 
 

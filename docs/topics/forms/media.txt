@@ -125,21 +125,6 @@ If this last CSS definition were to be rendered, it would become the following H
     <link href="https://static.example.com/lo_res.css" media="tv,projector" rel="stylesheet">
     <link href="https://static.example.com/newspaper.css" media="print" rel="stylesheet">
 
-``CSS`` objects
-~~~~~~~~~~~~~~~
-
-.. versionadded:: 5.2
-
-.. class:: CSS(href, **attributes)
-
-    :param href: String path to the CSS file. See
-        :ref:`the section on paths <form-asset-paths>` for details.
-
-    :param attributes: HTML attributes to be set on the rendered
-        ``<link rel="stylesheet">`` tag.
-
-    See :ref:`form-media-asset-objects` for usage examples.
-
 ``js``
 ------
 
@@ -147,12 +132,12 @@ A tuple describing the required JavaScript files. See :ref:`the
 section on paths <form-asset-paths>` for details of how to specify
 paths to these files.
 
-``JS`` objects
-~~~~~~~~~~~~~~
+``Script`` objects
+~~~~~~~~~~~~~~~~~~
 
 .. versionadded:: 5.2
 
-.. class:: JS(src, **attributes)
+.. class:: Script(src, **attributes)
 
     :param src: String path to the JS file. See
         :ref:`the section on paths <form-asset-paths>` for details.
@@ -308,15 +293,12 @@ Or if :mod:`~django.contrib.staticfiles` is configured using the
 Paths as objects
 ----------------
 
-Assets may also be object-based, using :class:`.CSS` and :class:`.JS`.
+Assets may also be object-based, using :class:`.Script`.
 Furthermore, these allow you to pass custom HTML attributes::
 
     class Media:
-        css = {
-            "all": [CSS("pretty.css", media="all", crossorigin="anonymous")],
-        }
         js = [
-            JS(
+            Script(
                 "https://cdn.example.com/something.min.js",
                 **{
                     "crossorigin": "anonymous",
@@ -330,7 +312,6 @@ HTML:
 
 .. code-block:: html+django
 
-    <link href="https://static.example.com/pretty.css" media="all" crossorigin="anonymous" rel="stylesheet">
     <script src="https://cdn.example.com/something.min.js"
             crossorigin="anonymous"
             async>
@@ -343,7 +324,7 @@ HTML:
 
 .. versionchanged:: 5.2
 
-    The object classes ``JS`` and ``CSS`` were added.
+    The object class ``Script`` was added.
 
 ``Media`` objects
 =================

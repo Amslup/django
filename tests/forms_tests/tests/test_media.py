@@ -1,8 +1,16 @@
 from django.forms import CharField, Form, Media, MultiWidget, TextInput
-from django.forms.widgets import CSS, JS, MediaAsset
+from django.forms.widgets import MediaAsset, Script
 from django.template import Context, Template
 from django.test import SimpleTestCase, override_settings
 from django.utils.html import html_safe
+
+
+class CSS(MediaAsset):
+    element_template = '<link href="{path}"{attributes}>'
+
+    def __init__(self, href, **attributes):
+        super().__init__(href, **attributes)
+        self.attributes["rel"] = "stylesheet"
 
 
 @override_settings(
@@ -61,49 +69,20 @@ class MediaAssetTestCase(SimpleTestCase):
 @override_settings(
     STATIC_URL="http://media.example.com/static/",
 )
-class CSSTestCase(SimpleTestCase):
-
-    def test_init(self):
-        self.assertEqual(CSS("path/to/css").attributes["rel"], "stylesheet")
-        self.assertEqual(
-            CSS("path/to/css", rel="preload").attributes["rel"], "stylesheet"
-        )
-
-    def test_init_with_href_kwarg(self):
-        self.assertEqual(
-            CSS(href="path/to/css").path, "http://media.example.com/static/path/to/css"
-        )
-
-    def test_str(self):
-        self.assertHTMLEqual(
-            str(CSS("path/to/css")),
-            '<link href="http://media.example.com/static/path/to/css" '
-            'rel="stylesheet">',
-        )
-        self.assertEqual(
-            str(CSS("path/to/css", media="screen")),
-            '<link href="http://media.example.com/static/path/to/css" '
-            'media="screen" rel="stylesheet">',
-        )
-
-
-@override_settings(
-    STATIC_URL="http://media.example.com/static/",
-)
-class JSTestCase(SimpleTestCase):
+class ScriptTestCase(SimpleTestCase):
 
     def test_init__with_src_kwarg(self):
         self.assertEqual(
-            JS(src="path/to/js").path, "http://media.example.com/static/path/to/js"
+            Script(src="path/to/js").path, "http://media.example.com/static/path/to/js"
         )
 
     def test_str(self):
         self.assertHTMLEqual(
-            str(JS("path/to/js")),
+            str(Script("path/to/js")),
             '<script src="http://media.example.com/static/path/to/js"></script>',
         )
         self.assertHTMLEqual(
-            str(JS("path/to/js", **{"async": True, "deferred": False})),
+            str(Script("path/to/js", **{"async": True, "deferred": False})),
             '<script src="http://media.example.com/static/path/to/js" async></script>',
         )
 
@@ -832,9 +811,9 @@ class FormsMediaObjectTestCase(SimpleTestCase):
                 )
             },
             js=(
-                JS("/path/to/js1"),
-                JS("http://media.other.com/path/to/js2"),
-                JS(
+                Script("/path/to/js1"),
+                Script("http://media.other.com/path/to/js2"),
+                Script(
                     "https://secure.other.com/path/to/js3",
                     integrity="9d947b87fdeb25030d56d01f7aa75800",
                 ),
@@ -853,8 +832,8 @@ class FormsMediaObjectTestCase(SimpleTestCase):
         self.assertEqual(
             repr(m),
             "Media(css={'all': [CSS('path/to/css1'), CSS('/path/to/css2')]}, "
-            "js=[JS('/path/to/js1'), JS('http://media.other.com/path/to/js2'), "
-            "JS('https://secure.other.com/path/to/js3')])",
+            "js=[Script('/path/to/js1'), Script('http://media.other.com/path/to/js2'), "
+            "Script('https://secure.other.com/path/to/js3')])",
         )
 
     def test_simplest_class(self):
@@ -879,13 +858,15 @@ class FormsMediaObjectTestCase(SimpleTestCase):
                     "/path/to/js1",
                     "http://media.other.com/path/to/js2",
                     "https://secure.other.com/path/to/js3",
-                    JS("/path/to/js4", integrity="9d947b87fdeb25030d56d01f7aa75800"),
+                    Script(
+                        "/path/to/js4", integrity="9d947b87fdeb25030d56d01f7aa75800"
+                    ),
                 )
 
         class MyWidget2(TextInput):
             class Media:
                 css = {"all": (CSS("/path/to/css2", media="all"), "/path/to/css3")}
-                js = (JS("/path/to/js1"), "/path/to/js4")
+                js = (Script("/path/to/js1"), "/path/to/js4")
 
         w1 = MyWidget1()
         w2 = MyWidget2()
@@ -925,7 +906,7 @@ class FormsMediaObjectTestCase(SimpleTestCase):
                     "/path/to/css1",
                 )
             },
-            js=(JS("/path/to/js1"), JS("/path/to/js1"), "/path/to/js1"),
+            js=(Script("/path/to/js1"), Script("/path/to/js1"), "/path/to/js1"),
         )
         self.assertHTMLEqual(
             str(media),
