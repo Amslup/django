@@ -753,7 +753,6 @@ class AsyncRequestFactory(RequestFactory):
             "headers": [(b"host", b"testserver")],
         }
         if self.defaults:
-            
             extra = {**self.defaults, **extra}
         if data:
             s["headers"].extend(
