@@ -4,14 +4,16 @@ import warnings
 from datetime import datetime
 
 from django.core.paginator import (
+    AsyncPaginator,
     EmptyPage,
     InvalidPage,
     PageNotAnInteger,
     Paginator,
-    UnorderedObjectListWarning, AsyncPaginator,
+    UnorderedObjectListWarning,
 )
 from django.test import SimpleTestCase, TestCase
-from .custom import ValidAdjacentNumsPaginator, AsyncValidAdjacentNumsPaginator
+
+from .custom import AsyncValidAdjacentNumsPaginator, ValidAdjacentNumsPaginator
 from .models import Article
 
 
