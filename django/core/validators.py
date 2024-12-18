@@ -255,7 +255,7 @@ class EmailValidator:
             # Try for possible IDN domain-part
             try:
                 domain_part = idna2008_encode(domain_part)
-                
+
             except UnicodeError:
                 pass
             else:
