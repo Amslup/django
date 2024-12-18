@@ -1,10 +1,10 @@
 import codecs
 import datetime
 import locale
+import unicodedata
 from decimal import Decimal
 from types import NoneType
 from urllib.parse import quote
-import unicodedata
 from django.utils.functional import Promise
 
 
