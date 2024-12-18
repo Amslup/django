@@ -128,8 +128,9 @@ class Aggregate(Func):
                 else:
                     extra_context = {
                         **extra_context,
-                        "template": self.filter_template
-                        % extra_context.get("template", self.template),
+                        "template": (
+                            self.filter_template % extra_context.get("template", self.template)
+                         )
                     }
                     sql, params = super().as_sql(
                         compiler,

@@ -4050,7 +4050,7 @@ by the aggregate.
 ``JSONArrayAgg``
 ~~~~~~~~~~~~~~~~
 
-.. versionadded:: 5.1
+.. versionadded:: 5.2
 
 .. class:: JSONArrayAgg(expression, output_field=None, sample=False, filter=None, default=None, **extra)
 
