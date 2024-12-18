@@ -5,6 +5,7 @@ import unicodedata
 from decimal import Decimal
 from types import NoneType
 from urllib.parse import quote
+
 from django.utils.functional import Promise
 
 
