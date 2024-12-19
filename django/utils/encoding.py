@@ -1,7 +1,6 @@
 import codecs
 import datetime
 import locale
-import unicodedata
 from decimal import Decimal
 from types import NoneType
 from urllib.parse import quote
@@ -209,6 +208,7 @@ def escape_uri_path(path):
 def punycode(domain):
     """Return the Punycode of the given domain if it's non-ASCII."""
     return domain.encode("idna").decode("ascii")
+
 
 def repercent_broken_unicode(path):
     """
