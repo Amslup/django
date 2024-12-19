@@ -218,16 +218,16 @@ class EmailValidator:
         re.IGNORECASE,
     )
     domain_regex = _lazy_re_compile(
-        # max length for domain name labels is 63 characters per RFC 1034
-        r"((?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+)(?:[A-Z0-9-]{2,63}(?<!-))\Z",
-        re.IGNORECASE,
-    )
-    domain_idn_regex = _lazy_re_compile(
-        r"^" + DomainNameValidator.hostname_re + DomainNameValidator.domain_re + r"\."
+        # Standard ASCII domain pattern
+        r"(?:"
+        r"((?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+)(?:[A-Z0-9-]{2,63}(?<!-))"
+        r"|"
+        # IDN pattern
+        r"(?:" + DomainNameValidator.hostname_re + DomainNameValidator.domain_re + r"\."
         r"(?!-)"
         r"(?:[a-z" + DomainNameValidator.ul + "-]{2,63}|xn--[a-z0-9]{1,59})"
-        r"(?<!-)"
-        r"$",
+        r"(?<!-))"
+        r")\Z",
         re.IGNORECASE,
     )
     literal_regex = _lazy_re_compile(
@@ -257,10 +257,6 @@ class EmailValidator:
         if not self.user_regex.match(user_part):
             raise ValidationError(self.message, code=self.code, params={"value": value})
 
-        # Only check for unsafe chars in domain part
-        if self.unsafe_chars.intersection(domain_part):
-            raise ValidationError(self.message, code=self.code, params={"value": value})
-
         if domain_part not in self.domain_allowlist and not self.validate_domain_part(
             domain_part
         ):
@@ -269,11 +265,6 @@ class EmailValidator:
     def validate_domain_part(self, domain_part):
         if self.domain_regex.match(domain_part):
             return True
-
-        # Try IDN validation if ASCII validation fails
-        if not domain_part.isascii():
-            if self.domain_idn_regex.match(domain_part):
-                return True
 
         literal_match = self.literal_regex.match(domain_part)
         if literal_match:
