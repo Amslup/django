@@ -219,16 +219,11 @@ class EmailValidator:
     )
     # Use DomainNameValidator patterns but remove the optional trailing dot
     domain_regex = _lazy_re_compile(
-        r"^" + DomainNameValidator.hostname_re + DomainNameValidator.domain_re +
-        # Modify tld_re to not allow trailing dot
-        (
-            r"\."
-            r"(?!-)"
-            r"(?:[a-z" + DomainNameValidator.ul + "-]{2,63}"
-            r"|xn--[a-z0-9]{1,59})"
-            r"(?<!-)"
-        )
-        + r"$",
+        r"^" + DomainNameValidator.hostname_re + DomainNameValidator.domain_re + r"\."
+        r"(?!-)"
+        r"(?:[a-z" + DomainNameValidator.ul + "-]{2,63}|xn--[a-z0-9]{1,59})"
+        r"(?<!-)"
+        r"$",
         re.IGNORECASE,
     )
     literal_regex = _lazy_re_compile(
@@ -258,7 +253,7 @@ class EmailValidator:
         if not self.user_regex.match(user_part):
             raise ValidationError(self.message, code=self.code, params={"value": value})
 
-        # Only check for unsafe chars in domain part since user_regex handles the local part
+        # Only check for unsafe chars in domain part
         if self.unsafe_chars.intersection(domain_part):
             raise ValidationError(self.message, code=self.code, params={"value": value})
 
