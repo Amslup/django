@@ -217,13 +217,14 @@ class EmailValidator:
         r'*"\Z)',
         re.IGNORECASE,
     )
-    # Use DomainNameValidator patterns but remove the optional trailing dot
     domain_regex = _lazy_re_compile(
-        r"^" + DomainNameValidator.hostname_re + DomainNameValidator.domain_re + r"\."
-        r"(?!-)"
-        r"(?:[a-z" + DomainNameValidator.ul + "-]{2,63}|xn--[a-z0-9]{1,59})"
-        r"(?<!-)"
-        r"$",
+        # max length for domain name labels is 63 characters per RFC 1034
+        r"((?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+)(?:[A-Z0-9-]{2,63}(?<!-))\Z",
+        re.IGNORECASE,
+    )
+    domain_idn_regex = _lazy_re_compile(
+        r"^" + DomainNameValidator.hostname_re + DomainNameValidator.domain_re + 
+        r"\." r"(?!-)" r"(?:[a-z" + DomainNameValidator.ul + "-]{2,63}|xn--[a-z0-9]{1,59})" r"(?<!-)" r"$",
         re.IGNORECASE,
     )
     literal_regex = _lazy_re_compile(
@@ -265,6 +266,11 @@ class EmailValidator:
     def validate_domain_part(self, domain_part):
         if self.domain_regex.match(domain_part):
             return True
+
+        # Try IDN validation if ASCII validation fails
+        if not domain_part.isascii():
+            if self.domain_idn_regex.match(domain_part):
+                return True
 
         literal_match = self.literal_regex.match(domain_part)
         if literal_match:
