@@ -236,7 +236,6 @@ class EmailValidator:
         re.IGNORECASE,
     )
     domain_allowlist = ["localhost"]
-    unsafe_chars = frozenset("\t\r\n")
 
     def __init__(self, message=None, code=None, allowlist=None):
         if message is not None:
