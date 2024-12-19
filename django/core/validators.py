@@ -223,8 +223,11 @@ class EmailValidator:
         re.IGNORECASE,
     )
     domain_idn_regex = _lazy_re_compile(
-        r"^" + DomainNameValidator.hostname_re + DomainNameValidator.domain_re + 
-        r"\." r"(?!-)" r"(?:[a-z" + DomainNameValidator.ul + "-]{2,63}|xn--[a-z0-9]{1,59})" r"(?<!-)" r"$",
+        r"^" + DomainNameValidator.hostname_re + DomainNameValidator.domain_re + r"\."
+        r"(?!-)"
+        r"(?:[a-z" + DomainNameValidator.ul + "-]{2,63}|xn--[a-z0-9]{1,59})"
+        r"(?<!-)"
+        r"$",
         re.IGNORECASE,
     )
     literal_regex = _lazy_re_compile(
