@@ -222,8 +222,8 @@ class EmailValidator:
         re.IGNORECASE,
     )
     domain_regex = _lazy_re_compile(
-        r"(?i)^(?!.*[\r\n])"  # Negative look-ahead disallowing \r or \n
-        r"(?:" + host_re + domain_re +
+        # Negative look-ahead disallowing \r or \n
+        r"(?i)^(?!.*[\r\n])" r"(?:" + host_re + domain_re +
         # Final TLD label:
         r"\.(?!-)(?:[a-z" + ul + r"0-9-]{2,63}|xn--[a-z0-9]{1,59})(?<!-)" r")$",
         re.IGNORECASE,
