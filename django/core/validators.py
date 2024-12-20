@@ -209,6 +209,10 @@ def validate_integer(value):
 class EmailValidator:
     message = _("Enter a valid email address.")
     code = "invalid"
+    host_re = DomainNameValidator.hostname_re
+    domain_re = DomainNameValidator.domain_re
+    ul = DomainNameValidator.ul
+
     user_regex = _lazy_re_compile(
         # dot-atom
         r"(^[-!#$%&'*+/=?^_`{}|~0-9A-Z]+(\.[-!#$%&'*+/=?^_`{}|~0-9A-Z]+)*\Z"
@@ -218,16 +222,10 @@ class EmailValidator:
         re.IGNORECASE,
     )
     domain_regex = _lazy_re_compile(
-        # Standard ASCII domain pattern
-        r"(?:"
-        r"((?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+)(?:[A-Z0-9-]{2,63}(?<!-))"
-        r"|"
-        # IDN pattern
-        r"(?:" + DomainNameValidator.hostname_re + DomainNameValidator.domain_re + r"\."
-        r"(?!-)"
-        r"(?:[a-z" + DomainNameValidator.ul + "-]{2,63}|xn--[a-z0-9]{1,59})"
-        r"(?<!-))"
-        r")\Z",
+        r"(?i)^(?!.*[\r\n])"  # Negative look-ahead disallowing \r or \n
+        r"(?:" + host_re + domain_re +
+        # Final TLD label:
+        r"\.(?!-)(?:[a-z" + ul + r"0-9-]{2,63}|xn--[a-z0-9]{1,59})(?<!-)" r")$",
         re.IGNORECASE,
     )
     literal_regex = _lazy_re_compile(
